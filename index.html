@@ -45,7 +45,7 @@ body.mode-after {}
   border: 1px solid var(--gray); border-radius: 4px; font-size: 11px; color: var(--offwh);
   width: 160px; outline: none; font-family: inherit;
 }
-.nav-utility { display: flex; gap: 8px; margin-left: 12px; align-items: center; }
+.nav-utility { display: flex; gap: 8px; margin-left: 12px; align-items: center; position: relative; z-index: 200; }
 .nav-icon {
   width: 28px; height: 28px; background: rgba(255,255,255,0.08); border-radius: 4px;
   display: flex; align-items: center; justify-content: center; font-size: 11px;
@@ -63,15 +63,44 @@ body.mode-after .nav-flat { display: none; }
 body.mode-after .nav-after { display: flex; }
 
 /* ===== BODY LAYOUT ===== */
-.app-body { display: flex; flex: 1; overflow: hidden; }
+.app-body { display: flex; flex: 1; overflow: hidden; position: relative; }
 
 /* ===== LEFT SIDEBAR ===== */
 .sidebar {
-  width: var(--sidebar-w); background: rgba(0,0,0,0.35); flex-shrink: 0;
+  width: var(--sidebar-w); background: rgba(10,22,40,0.92); flex-shrink: 0;
   display: flex; flex-direction: column; overflow-y: auto; transition: width 0.35s;
-  border-right: 1px solid rgba(58,95,122,0.3);
+  border-right: 1px solid rgba(58,95,122,0.3); z-index: 10;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 body.mode-after .sidebar { width: 200px; }
+.sidebar.collapsed { width: 0 !important; border-right: none; overflow: hidden; }
+
+/* Panel collapse toggles — positioned on .app-body */
+.panel-toggle {
+  position: absolute; top: 50%; width: 18px; height: 40px;
+  background: var(--mid); border: 1px solid var(--faint); display: flex;
+  align-items: center; justify-content: center; cursor: pointer; z-index: 60;
+  font-size: 10px; color: var(--gray); transition: background 0.2s, color 0.2s;
+}
+.panel-toggle:hover { background: var(--card); color: var(--cyan); border-color: var(--cyan); }
+.right-panel-toggle { display: none; }
+body.mode-after .right-panel-toggle { display: flex; }
+
+.sidebar-toggle {
+  left: var(--sidebar-w); transform: translateY(-50%);
+  border-radius: 0 4px 4px 0; border-left: none;
+  transition: left 0.35s, background 0.2s, color 0.2s;
+}
+body.mode-after .sidebar-toggle { left: 200px; }
+.sidebar-toggle.shifted { left: 0 !important; }
+
+.right-panel-toggle {
+  right: 0; transform: translateY(-50%);
+  border-radius: 4px 0 0 4px; border-right: none;
+  transition: right 0.35s, background 0.2s, color 0.2s;
+}
+body.mode-after .right-panel-toggle { right: var(--panel-w); }
+.right-panel-toggle.shifted { right: 0 !important; }
 
 /* BEFORE: icon-only */
 .sb-icon {
@@ -79,15 +108,16 @@ body.mode-after .sidebar { width: 200px; }
   cursor: pointer; color: var(--faint); font-size: 10px; transition: all 0.2s;
   border-left: 3px solid transparent; position: relative;
 }
+.sb-emoji { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; font-size: 15px; line-height: 1; }
 .sb-icon:hover { background: rgba(255,255,255,0.04); color: var(--offwh); }
 .sb-icon.active { background: rgba(0,229,255,0.08); color: var(--cyan); border-left-color: var(--cyan); }
 .sb-icon .sb-label { display: none; }
 .sb-icon .sb-dot { display: none; }
 
 /* AFTER: labeled with groups */
-body.mode-after .sb-icon { justify-content: flex-start; padding: 0 12px; height: 34px; }
-body.mode-after .sb-icon .sb-label { display: inline; margin-left: 8px; font-size: 12px; }
-body.mode-after .sb-icon .sb-dot { display: block; position: absolute; right: 12px; width: 7px; height: 7px; border-radius: 50%; }
+body.mode-after .sb-icon { justify-content: flex-start; padding: 0 10px; height: 34px; gap: 0; }
+body.mode-after .sb-icon .sb-label { display: inline; margin-left: 8px; font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.mode-after .sb-icon .sb-dot { display: inline-block; position: static; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-right: 2px; }
 .sb-search {
   display: none; margin: 8px; padding: 6px 10px; background: rgba(255,255,255,0.06);
   border: 1px solid var(--faint); border-radius: 4px; font-size: 10px; color: var(--offwh);
@@ -101,32 +131,85 @@ body.mode-after .sb-search { display: block; }
 body.mode-after .sb-group { display: block; }
 
 /* ===== MAIN CONTENT AREA ===== */
-.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
 
 /* ===== MAP VIEW ===== */
 .view-map {
-  flex: 1; display: flex; position: relative;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; z-index: 0;
   background: linear-gradient(160deg, #0c3a5c 0%, #091a2e 60%, #0a1628 100%);
+  overflow: hidden; pointer-events: auto;
 }
+/* When map is showing, let it render behind everything in app-body */
 .map-content {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  flex-direction: column; position: relative;
+  flex-direction: column; position: relative; overflow: hidden;
+}
+/* Map zoom container */
+.map-zoom-wrapper {
+  transform-origin: center center; transition: none;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; cursor: grab;
+}
+.map-zoom-wrapper.grabbing { cursor: grabbing; }
+.map-zoom-hint {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; color: var(--faint); background: rgba(0,0,0,0.4);
+  padding: 3px 10px; border-radius: 3px; pointer-events: none; z-index: 5;
+  opacity: 0.7;
 }
 .map-title { font-size: 20px; color: var(--blue); }
 .map-sub { font-size: 12px; color: var(--faint); margin-top: 4px; }
+
+/* World map SVG */
+.world-map-svg { width: 100%; height: auto; opacity: 0.55; }
+.map-svg-container { position: relative; width: 85%; max-width: 1200px; }
+.world-map-svg path { fill: #1a3f5e; stroke: #2a5f8a; stroke-width: 0.3; transition: fill 0.2s, opacity 0.2s; cursor: pointer; }
+.world-map-svg path:hover { fill: #2a6090; opacity: 1; }
+.world-map-svg path.highlighted { fill: var(--cyan); opacity: 0.7; }
+body.mode-after .world-map-svg { opacity: 0.85; }
+
+/* Map overlay markers */
+.map-markers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.map-marker {
+  position: absolute; font-size: 11px; font-weight: 600; padding: 2px 6px;
+  border-radius: 3px; white-space: nowrap; pointer-events: auto; cursor: default;
+  transform: translate(-50%, -50%); transition: opacity 0.3s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.map-marker.off { opacity: 0; pointer-events: none; }
+.map-marker[data-layer="warmer"] { background: rgba(255,82,82,0.85); color: white; }
+.map-marker[data-layer="cooler"] { background: rgba(79,195,247,0.85); color: white; }
+.map-marker[data-layer="wetter"] { background: rgba(0,229,255,0.85); color: var(--dark); }
+.map-marker[data-layer="drier"] { background: rgba(255,171,64,0.85); color: var(--dark); }
+.map-marker[data-layer="hurricane"] { background: rgba(122,141,166,0.9); color: white; }
+.map-marker[data-layer="ndvi"] { background: rgba(0,230,118,0.85); color: var(--dark); }
+.map-marker[data-layer="energy"] { background: rgba(122,141,166,0.9); color: white; }
+.map-marker[data-layer="sd"] { background: rgba(0,230,118,0.2); color: var(--green); border: 1px solid var(--green); }
+
+/* Watchlist star */
+.sb-star { display: none; font-size: 11px; color: var(--faint); cursor: pointer; z-index: 2; flex-shrink: 0; width: 16px; text-align: center; line-height: 1; transition: color 0.15s, transform 0.15s, opacity 0.15s; margin-right: 2px; }
+.sb-star:hover { color: var(--orange); transform: scale(1.2); }
+.sb-star.watched { color: var(--orange); opacity: 1 !important; }
+body.mode-after .sb-star { display: flex; align-items: center; justify-content: center; }
+body.mode-after .sb-star:not(.watched) { opacity: 0.25; }
+body.mode-after .sb-icon:hover .sb-star:not(.watched) { opacity: 0.6; color: var(--orange); }
 
 /* Before: empty */
 .map-empty { color: var(--faint); }
 body.mode-after .map-empty { display: none; }
 .map-loaded { display: none; }
-body.mode-after .map-loaded { display: flex; flex-direction: column; align-items: center; }
+body.mode-after .map-loaded { display: flex; flex-direction: column; align-items: center; width: 100%; }
 
 /* ===== RIGHT PANEL ===== */
 .right-panel {
-  width: 0; background: var(--card); border-left: 1px solid rgba(58,95,122,0.3);
+  width: 0; background: rgba(19,46,74,0.92); border-left: 1px solid rgba(58,95,122,0.3);
   overflow-y: auto; overflow-x: hidden; transition: width 0.35s; flex-shrink: 0;
+  position: relative; z-index: 10;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 body.mode-after .right-panel { width: var(--panel-w); }
+.right-panel.collapsed { width: 0 !important; border-left: none; overflow: hidden; }
 .rp-inner { width: var(--panel-w); }
 .rp-section { padding: 10px 14px; border-bottom: 1px solid rgba(58,95,122,0.2); }
 .rp-header {
@@ -149,6 +232,48 @@ body.mode-after .right-panel { width: var(--panel-w); }
 .layer-item.off { color: var(--faint); }
 .layer-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; transition: opacity 0.2s; }
 .layer-item.off .layer-dot { opacity: 0.25; }
+.layer-controls {
+  display: flex; gap: 8px; margin-bottom: 6px; font-size: 9px;
+}
+.layer-controls span {
+  color: var(--cyan); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.layer-controls span:hover { color: white; }
+
+/* ===== DROPDOWN MENUS ===== */
+.dropdown-anchor { position: relative; }
+.dropdown {
+  display: none; position: absolute; top: 36px; right: 0; z-index: 9999;
+  background: var(--mid); border: 1px solid var(--faint); border-radius: 6px;
+  min-width: 240px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.dropdown.open { display: block; }
+.dd-header {
+  padding: 10px 14px; font-size: 10px; font-weight: 700; color: var(--gray);
+  text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(58,95,122,0.3);
+}
+.dd-item {
+  padding: 9px 14px; font-size: 12px; cursor: pointer; display: flex;
+  align-items: center; gap: 10px; transition: background 0.15s;
+}
+.dd-item:hover { background: rgba(255,255,255,0.05); }
+.dd-item .dd-icon { width: 20px; text-align: center; color: var(--gray); font-size: 11px; }
+.dd-item .dd-text { flex: 1; }
+.dd-item .dd-meta { font-size: 9px; color: var(--faint); }
+.dd-item .dd-badge {
+  padding: 2px 7px; border-radius: 10px; font-size: 9px; font-weight: 600;
+}
+.dd-divider { height: 1px; background: rgba(58,95,122,0.3); margin: 2px 0; }
+.dd-notif-item {
+  padding: 10px 14px; cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s;
+}
+.dd-notif-item:hover { background: rgba(255,255,255,0.04); }
+.dd-notif-item.unread { border-left-color: var(--cyan); background: rgba(0,229,255,0.03); }
+.dd-notif-item .dd-notif-title { font-size: 11px; font-weight: 600; color: var(--offwh); }
+.dd-notif-item .dd-notif-desc { font-size: 10px; color: var(--gray); margin-top: 2px; }
+.dd-notif-item .dd-notif-time { font-size: 9px; color: var(--faint); margin-top: 3px; }
 
 /* Alert rows */
 .alert-row {
@@ -167,9 +292,35 @@ body.mode-after .right-panel { width: var(--panel-w); }
 .watch-alerts { font-weight: 600; font-size: 10px; }
 .report-row { font-size: 11px; padding: 3px 0; }
 
-/* ===== DATA TABLE VIEW ===== */
-.view-table { display: none; flex: 1; flex-direction: column; overflow-y: auto; padding: 16px 20px; }
-.view-table.active { display: flex; }
+/* ===== DATA TABLE VIEW (slide-up panel) ===== */
+.view-table {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 0; min-height: 0; max-height: 100%;
+  background: var(--dark);
+  border-top: 2px solid var(--cyan);
+  flex-direction: column; overflow: hidden;
+  transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 50; display: flex;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+}
+.view-table.active { height: 45%; }
+.view-table.fullscreen { height: 100%; }
+
+/* Drag handle */
+.table-drag-handle {
+  height: 28px; cursor: ns-resize; display: flex; align-items: center;
+  justify-content: center; background: var(--mid); flex-shrink: 0;
+  user-select: none; position: relative;
+}
+.table-drag-handle::before {
+  content: ''; width: 40px; height: 4px; background: var(--faint);
+  border-radius: 2px; transition: background 0.2s;
+}
+.table-drag-handle:hover::before { background: var(--cyan); }
+.table-drag-handle .drag-hint {
+  position: absolute; right: 14px; font-size: 9px; color: var(--faint);
+}
+.table-panel-body { flex: 1; overflow-y: auto; padding: 12px 20px; }
 .vt-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .vt-back {
   background: none; border: 1px solid var(--faint); color: var(--gray); padding: 4px 12px;
@@ -214,7 +365,7 @@ body.mode-after .right-panel { width: var(--panel-w); }
 .click-hint { font-size: 9px; color: var(--faint); margin-left: auto; white-space: nowrap; padding-left: 8px; }
 
 /* ===== COUNTRY DASHBOARD VIEW ===== */
-.view-dashboard { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+.view-dashboard { display: none; flex: 1; flex-direction: column; overflow-y: auto; background: var(--dark); position: relative; z-index: 2; }
 .view-dashboard.active { display: flex; }
 .dash-nav {
   display: flex; align-items: center; background: var(--nav); padding: 0 14px; height: 38px; flex-shrink: 0;
@@ -281,6 +432,102 @@ body.mode-after .right-panel { width: var(--panel-w); }
 .key-hint { font-size: 9px; color: var(--faint); }
 .key-hint kbd { background: var(--faint); color: var(--offwh); padding: 1px 5px; border-radius: 2px; font-size: 9px; }
 
+/* ===== NEW PAGE VIEWS ===== */
+.view-sd { display: none; flex: 1; flex-direction: column; overflow-y: auto; background: var(--dark); position: relative; z-index: 2; }
+.view-sd.active { display: flex; }
+.view-wasde { display: none; flex: 1; flex-direction: column; overflow-y: auto; background: var(--dark); position: relative; z-index: 2; }
+.view-wasde.active { display: flex; }
+.view-timeline { display: none; flex: 1; flex-direction: column; overflow-y: auto; background: var(--dark); position: relative; z-index: 2; }
+.view-timeline.active { display: flex; }
+.view-enso { display: none; flex: 1; flex-direction: column; overflow-y: auto; background: var(--dark); position: relative; z-index: 2; }
+.view-enso.active { display: flex; }
+.view-mydash { display: none; flex: 1; flex-direction: column; overflow-y: auto; background: var(--dark); position: relative; z-index: 2; }
+.view-mydash.active { display: flex; }
+
+/* Common page styling */
+.page-view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.page-header { background: var(--nav); padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; border-bottom: 1px solid rgba(58,95,122,0.3); }
+.page-header .page-title { font-size: 18px; font-weight: 600; color: white; margin-right: auto; }
+.page-header .page-back { color: var(--cyan); cursor: pointer; font-size: 14px; }
+.page-content { padding: 18px 20px; flex: 1; }
+
+/* Card-based layouts */
+.commodity-selector { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.commodity-tab { padding: 6px 16px; border-radius: 4px; background: rgba(255,255,255,0.08); color: var(--gray); cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; border: 1px solid transparent; }
+.commodity-tab.active { background: rgba(0,229,255,0.15); color: var(--cyan); border-color: rgba(0,229,255,0.3); }
+.commodity-tab:hover { background: rgba(255,255,255,0.12); }
+
+/* Balance sheet cards */
+.balance-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.balance-card { background: var(--card); border-radius: 5px; padding: 12px; border-left: 3px solid var(--cyan); }
+.balance-card.surplus { border-left-color: var(--green); }
+.balance-card.deficit { border-left-color: var(--red); }
+.balance-card.neutral { border-left-color: var(--orange); }
+.balance-card .metric { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; }
+.balance-card .metric-label { color: var(--gray); }
+.balance-card .metric-value { color: white; font-weight: 600; }
+.balance-card .metric-change { font-size: 10px; color: var(--faint); margin-top: 4px; }
+
+/* Health indicator */
+.health-badge { display: inline-block; padding: 4px 10px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.health-green { background: rgba(0,230,118,0.15); color: var(--green); }
+.health-red { background: rgba(255,82,82,0.15); color: var(--red); }
+.health-orange { background: rgba(255,171,64,0.15); color: var(--orange); }
+
+/* Summary panels */
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.summary-box { background: var(--card); border-radius: 5px; padding: 14px; border-top: 2px solid var(--cyan); }
+.summary-box .label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--gray); margin-bottom: 6px; }
+.summary-box .value { font-size: 16px; font-weight: 700; color: white; }
+.summary-box .note { font-size: 10px; color: var(--faint); margin-top: 4px; }
+
+/* Timeline styling */
+.timeline { position: relative; padding: 20px 0; }
+.timeline::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: var(--faint); }
+.timeline-event { position: relative; margin-bottom: 18px; margin-left: 80px; }
+.timeline-dot { position: absolute; left: -50px; top: 0; width: 14px; height: 14px; background: var(--cyan); border-radius: 50%; border: 2px solid var(--dark); }
+.timeline-event.weather .timeline-dot { background: var(--blue); }
+.timeline-event.policy .timeline-dot { background: var(--orange); }
+.timeline-event.market .timeline-dot { background: var(--red); }
+.timeline-event.report .timeline-dot { background: var(--green); }
+.timeline-event-content { background: var(--card); border-radius: 4px; padding: 10px 12px; }
+.timeline-event-date { font-size: 9px; color: var(--faint); font-weight: 600; text-transform: uppercase; }
+.timeline-event-title { font-size: 12px; font-weight: 600; color: white; margin: 3px 0; }
+.timeline-event-desc { font-size: 10px; color: var(--gray); }
+.timeline-event-impact { display: inline-block; margin-top: 4px; padding: 2px 7px; border-radius: 2px; font-size: 9px; font-weight: 600; }
+.impact-high { background: rgba(255,82,82,0.2); color: var(--red); }
+.impact-medium { background: rgba(255,171,64,0.2); color: var(--orange); }
+.impact-low { background: rgba(0,229,255,0.2); color: var(--cyan); }
+
+/* ENSO styling */
+.enso-status-banner { background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(79,195,247,0.1)); border: 1px solid rgba(0,229,255,0.2); border-radius: 5px; padding: 16px; margin-bottom: 16px; text-align: center; }
+.enso-status-title { font-size: 20px; font-weight: 700; color: var(--cyan); }
+.enso-status-desc { font-size: 11px; color: var(--gray); margin-top: 4px; }
+
+.oni-index-bar { background: var(--card); border-radius: 5px; padding: 14px; margin-bottom: 14px; }
+.oni-bar-label { font-size: 9px; font-weight: 700; color: var(--gray); text-transform: uppercase; margin-bottom: 8px; }
+.oni-bar-track { height: 20px; background: rgba(0,0,0,0.3); border-radius: 3px; position: relative; margin-bottom: 6px; overflow: hidden; }
+.oni-bar-fill { height: 100%; width: 50%; background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 3px; }
+.oni-bar-scale { display: flex; justify-content: space-between; font-size: 9px; color: var(--faint); }
+
+.impact-matrix { background: var(--card); border-radius: 5px; padding: 12px; margin-bottom: 14px; }
+.impact-matrix-title { font-size: 11px; font-weight: 700; color: var(--cyan); text-transform: uppercase; margin-bottom: 10px; }
+.impact-matrix-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.impact-cell { background: rgba(0,0,0,0.2); border-radius: 3px; padding: 8px; text-align: center; }
+.impact-cell-commodity { font-size: 10px; font-weight: 600; color: white; }
+.impact-cell-level { font-size: 9px; margin-top: 2px; }
+
+/* Dashboard widgets */
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dashboard-widget { background: var(--card); border-radius: 5px; padding: 12px; position: relative; }
+.widget-handle { position: absolute; top: 6px; right: 6px; width: 16px; height: 16px; color: var(--faint); cursor: move; opacity: 0; transition: opacity 0.2s; font-size: 10px; }
+.dashboard-widget:hover .widget-handle { opacity: 0.6; }
+.widget-title { font-size: 11px; font-weight: 600; color: white; margin-bottom: 8px; }
+.widget-content { font-size: 11px; color: var(--gray); }
+
+.customize-btn { position: fixed; bottom: 80px; right: 20px; padding: 8px 16px; background: rgba(0,229,255,0.15); border: 1px solid rgba(0,229,255,0.3); color: var(--cyan); border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s; z-index: 50; }
+.customize-btn:hover { background: rgba(0,229,255,0.25); }
+
 /* ===== BREADCRUMB ===== */
 .breadcrumb {
   background: var(--mid); padding: 6px 20px; font-size: 11px; color: var(--gray);
@@ -292,6 +539,7 @@ body.mode-after .right-panel { width: var(--panel-w); }
 .breadcrumb .sep { margin: 0 6px; color: var(--faint); }
 .breadcrumb .current { color: var(--offwh); font-weight: 600; cursor: default; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -301,13 +549,13 @@ body.mode-after .right-panel { width: var(--panel-w); }
   <!-- Before nav -->
   <div class="nav-flat">
     <div class="nav-flat-item active" onclick="goHome()">Home</div>
-    <div class="nav-flat-item">Dashboards</div>
-    <div class="nav-flat-item">S&D</div>
-    <div class="nav-flat-item">WASDE</div>
-    <div class="nav-flat-item">Timeline</div>
+    <div class="nav-flat-item" onclick="showPage('mydash')">My Dashboard</div>
+    <div class="nav-flat-item" onclick="showPage('sd')">S&D</div>
+    <div class="nav-flat-item" onclick="showPage('wasde')">WASDE</div>
+    <div class="nav-flat-item" onclick="showPage('timeline')">Timeline</div>
+    <div class="nav-flat-item" onclick="showPage('enso')">ENSO</div>
     <div class="nav-flat-item">Updates</div>
     <div class="nav-flat-item">Videos</div>
-    <div class="nav-flat-item">ENSO</div>
     <div class="nav-flat-item">Tutorials</div>
     <div class="nav-flat-item">Fullscreen</div>
     <div class="nav-flat-item">Units</div>
@@ -318,17 +566,81 @@ body.mode-after .right-panel { width: var(--panel-w); }
   <div class="nav-after">
     <div class="nav-pills">
       <div class="nav-pill active" onclick="goHome()">Home</div>
-      <div class="nav-pill">S&D</div>
-      <div class="nav-pill">WASDE</div>
-      <div class="nav-pill">Timeline</div>
-      <div class="nav-pill">ENSO</div>
+      <div class="nav-pill" onclick="showPage('sd')">S&D</div>
+      <div class="nav-pill" onclick="showPage('wasde')">WASDE</div>
+      <div class="nav-pill" onclick="showPage('timeline')">Timeline</div>
+      <div class="nav-pill" onclick="showPage('enso')">ENSO</div>
+      <div class="nav-pill" onclick="showPage('mydash')">My Dashboard</div>
     </div>
     <input class="nav-search" type="text" placeholder="Search commodities, countries...">
     <div class="nav-utility">
-      <div class="nav-icon" title="Notifications"><span class="notif-dot"></span>N</div>
-      <div class="nav-icon" title="Files">F</div>
-      <div class="nav-icon" title="Help">?</div>
-      <div class="nav-avatar" title="Profile">NS</div>
+      <div class="dropdown-anchor">
+        <div class="nav-icon" title="Notifications" onclick="toggleDropdown('dd-notif', event)"><span class="notif-dot"></span>N</div>
+        <div class="dropdown" id="dd-notif">
+          <div class="dd-header">Notifications</div>
+          <div class="dd-notif-item unread">
+            <div class="dd-notif-title">Russia Southern: +4.6C anomaly</div>
+            <div class="dd-notif-desc">Temperature deviation exceeds threshold for Wheat Winter</div>
+            <div class="dd-notif-time">12 min ago</div>
+          </div>
+          <div class="dd-notif-item unread">
+            <div class="dd-notif-title">Brazil Corn: Heavy precipitation</div>
+            <div class="dd-notif-desc">175% of normal precip - flooding risk for safrinha crop</div>
+            <div class="dd-notif-time">1 hour ago</div>
+          </div>
+          <div class="dd-notif-item unread">
+            <div class="dd-notif-title">WASDE Report: Wheat stocks revised</div>
+            <div class="dd-notif-desc">Global wheat ending stocks revised down 2.3M MT</div>
+            <div class="dd-notif-time">3 hours ago</div>
+          </div>
+          <div class="dd-notif-item">
+            <div class="dd-notif-title">US Great Lakes: Conditions favorable</div>
+            <div class="dd-notif-desc">Corn crop conditions improved to 65% Good/Excellent</div>
+            <div class="dd-notif-time">Yesterday</div>
+          </div>
+          <div class="dd-item" style="justify-content:center;color:var(--cyan);font-size:11px;">View all notifications</div>
+        </div>
+      </div>
+      <div class="dropdown-anchor">
+        <div class="nav-icon" title="Files" onclick="toggleDropdown('dd-files', event)">F</div>
+        <div class="dropdown" id="dd-files">
+          <div class="dd-header">My Files</div>
+          <div class="dd-item"><span class="dd-icon">&#128196;</span><span class="dd-text">Wheat_Q1_Analysis.xlsx</span><span class="dd-meta">Mar 20</span></div>
+          <div class="dd-item"><span class="dd-icon">&#128196;</span><span class="dd-text">Corn_Brazil_Report.pdf</span><span class="dd-meta">Mar 18</span></div>
+          <div class="dd-item"><span class="dd-icon">&#128196;</span><span class="dd-text">WASDE_March_Notes.docx</span><span class="dd-meta">Mar 15</span></div>
+          <div class="dd-item"><span class="dd-icon">&#128196;</span><span class="dd-text">Soybean_Trade_Flows.xlsx</span><span class="dd-meta">Mar 12</span></div>
+          <div class="dd-divider"></div>
+          <div class="dd-item" style="color:var(--cyan);font-size:11px;justify-content:center;">Browse all files</div>
+        </div>
+      </div>
+      <div class="dropdown-anchor">
+        <div class="nav-icon" title="Help" onclick="toggleDropdown('dd-help', event)">?</div>
+        <div class="dropdown" id="dd-help">
+          <div class="dd-header">Help & Resources</div>
+          <div class="dd-item"><span class="dd-icon">&#9655;</span><span class="dd-text">Getting Started Tutorial</span><span class="dd-meta">5 min</span></div>
+          <div class="dd-item"><span class="dd-icon">&#9655;</span><span class="dd-text">Reading the Data Table</span><span class="dd-meta">3 min</span></div>
+          <div class="dd-item"><span class="dd-icon">&#9655;</span><span class="dd-text">Understanding Weather Risk</span><span class="dd-meta">4 min</span></div>
+          <div class="dd-item"><span class="dd-icon">&#9655;</span><span class="dd-text">Country Dashboard Guide</span><span class="dd-meta">6 min</span></div>
+          <div class="dd-divider"></div>
+          <div class="dd-item"><span class="dd-icon">&#128172;</span><span class="dd-text">Contact Support</span></div>
+          <div class="dd-item"><span class="dd-icon">&#128214;</span><span class="dd-text">Documentation</span></div>
+        </div>
+      </div>
+      <div class="dropdown-anchor">
+        <div class="nav-avatar" title="Profile" onclick="toggleDropdown('dd-profile', event)">NS</div>
+        <div class="dropdown" id="dd-profile" style="min-width: 220px;">
+          <div style="padding: 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(58,95,122,0.3);">
+            <div style="width:36px;height:36px;background:var(--cyan);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--dark);font-weight:700;">NS</div>
+            <div><div style="font-size:13px;font-weight:600;color:white;">Nicolas Sakr</div><div style="font-size:10px;color:var(--gray);">sakrnicolas@gmail.com</div></div>
+          </div>
+          <div class="dd-item"><span class="dd-icon">&#9881;</span><span class="dd-text">Settings</span></div>
+          <div class="dd-item"><span class="dd-icon">&#127760;</span><span class="dd-text">Units</span><span class="dd-meta">Metric</span></div>
+          <div class="dd-item"><span class="dd-icon">&#9790;</span><span class="dd-text">Theme</span><span class="dd-meta">Dark</span></div>
+          <div class="dd-item"><span class="dd-icon">&#128276;</span><span class="dd-text">Alert Preferences</span></div>
+          <div class="dd-divider"></div>
+          <div class="dd-item" style="color:var(--red);"><span class="dd-icon">&#10140;</span><span class="dd-text">Log Out</span></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -345,55 +657,148 @@ body.mode-after .right-panel { width: var(--panel-w); }
 <!-- APP BODY -->
 <div class="app-body">
 
+  <!-- HOME / MAP VIEW (absolute, behind everything) -->
+  <div class="view-map" id="viewMap">
+    <div class="map-content">
+      <div class="map-empty">
+        <div class="map-title" style="color:var(--faint)">Empty map - no commodity selected</div>
+        <div class="map-sub">Click a commodity icon in the sidebar to load data</div>
+      </div>
+      <div class="map-loaded">
+        <div class="map-sub" style="margin-bottom:8px;">Click a commodity in the sidebar to change | Click a country on the map to drill in</div>
+        <div class="map-zoom-wrapper" id="mapZoomWrapper">
+          <div class="map-svg-container">
+          <svg class="world-map-svg" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+            <!-- North America -->
+            <path data-country="United States" onclick="showDashboard('United States', window._currentCommodity)" d="M120,120 L130,105 L155,100 L180,95 L210,100 L240,105 L260,110 L275,120 L285,135 L280,155 L270,170 L250,180 L230,185 L210,180 L195,190 L180,180 L160,175 L140,165 L125,150 L115,135 Z"/>
+            <path d="M130,70 L160,55 L200,50 L240,55 L270,65 L285,80 L280,95 L260,105 L230,100 L200,95 L170,90 L145,85 Z" style="fill:#163d5a"/>
+            <!-- Mexico & Central America -->
+            <path d="M135,185 L155,180 L175,190 L190,200 L185,215 L175,225 L160,230 L145,225 L135,215 L130,200 Z" style="fill:#163d5a"/>
+            <!-- South America -->
+            <path data-country="Brazil" onclick="showDashboard('Brazil', window._currentCommodity)" d="M240,270 L265,255 L290,260 L310,275 L315,300 L310,330 L295,355 L275,370 L255,365 L240,345 L235,320 L230,295 Z"/>
+            <path d="M215,240 L240,235 L260,245 L265,255 L240,270 L225,275 L210,265 L205,250 Z" style="fill:#163d5a"/>
+            <path d="M230,370 L255,365 L275,375 L270,400 L255,420 L240,425 L225,410 L220,390 Z" style="fill:#163d5a"/>
+            <!-- Europe -->
+            <path data-country="France" onclick="showDashboard('France', window._currentCommodity)" d="M430,115 L445,108 L460,112 L465,125 L458,138 L445,142 L432,138 L425,128 Z"/>
+            <path d="M460,95 L475,90 L490,95 L495,108 L488,115 L475,118 L462,112 Z" style="fill:#163d5a"/>
+            <path d="M480,108 L500,100 L520,105 L525,120 L515,130 L498,128 L485,118 Z" style="fill:#163d5a"/>
+            <!-- Russia -->
+            <path data-country="Russia" onclick="showDashboard('Russia', window._currentCommodity)" d="M530,55 L580,45 L640,40 L700,42 L760,48 L800,55 L830,65 L840,80 L830,95 L800,105 L760,110 L720,108 L680,105 L640,100 L600,95 L560,90 L535,82 L525,68 Z"/>
+            <!-- Africa -->
+            <path d="M440,185 L465,175 L490,180 L510,195 L515,220 L510,250 L500,275 L485,295 L465,305 L445,300 L430,280 L425,255 L428,230 L432,210 L435,195 Z" style="fill:#163d5a"/>
+            <!-- Middle East -->
+            <path d="M520,140 L545,135 L570,140 L580,155 L575,170 L560,180 L540,178 L525,168 L518,155 Z" style="fill:#163d5a"/>
+            <!-- India & South Asia -->
+            <path d="M610,160 L635,150 L660,158 L670,178 L665,200 L650,218 L630,225 L615,215 L605,195 L600,175 Z" style="fill:#163d5a"/>
+            <!-- China & East Asia -->
+            <path d="M680,100 L720,90 L760,95 L790,105 L800,125 L790,145 L770,155 L745,158 L720,155 L700,145 L685,130 L678,115 Z" style="fill:#163d5a"/>
+            <!-- Southeast Asia -->
+            <path d="M700,185 L725,175 L750,180 L765,195 L760,210 L745,218 L725,215 L710,205 L705,195 Z" style="fill:#163d5a"/>
+            <!-- Australia -->
+            <path data-country="Australia" onclick="showDashboard('Australia', window._currentCommodity)" d="M740,310 L775,295 L810,300 L840,310 L855,330 L850,355 L835,375 L810,385 L780,380 L755,365 L740,345 L735,325 Z"/>
+            <!-- Japan / Korea -->
+            <path d="M810,105 L820,98 L832,102 L835,115 L828,125 L818,122 L812,115 Z" style="fill:#163d5a"/>
+            <!-- Indonesia -->
+            <path d="M710,250 L730,245 L755,248 L775,255 L790,262 L785,272 L765,275 L740,270 L720,265 L710,258 Z" style="fill:#163d5a"/>
+            <!-- Greenland -->
+            <path d="M310,25 L340,18 L370,22 L385,35 L380,50 L360,58 L335,55 L315,45 L308,35 Z" style="fill:#163d5a"/>
+          </svg>
+          <!-- Weather/data layer markers -->
+          <div class="map-markers" id="mapMarkers">
+            <!-- Warmer 🔥 — Russia, US, Brazil -->
+            <div class="map-marker" data-layer="warmer" style="top:14%;left:68%">🔥 +4.6C</div>
+            <div class="map-marker" data-layer="warmer" style="top:28%;left:20%">🔥 +2.1C</div>
+            <div class="map-marker" data-layer="warmer" style="top:62%;left:27%">🔥 +3.1C</div>
+            <!-- Cooler ❄️ — France, Australia -->
+            <div class="map-marker" data-layer="cooler" style="top:24%;left:45%">❄️ -1.2C</div>
+            <div class="map-marker" data-layer="cooler" style="top:68%;left:79%">❄️ -0.3C</div>
+            <!-- Wetter 🌧️ — India, SE Asia -->
+            <div class="map-marker" data-layer="wetter" style="top:37%;left:64%">🌧️ 175%</div>
+            <div class="map-marker" data-layer="wetter" style="top:39%;left:73%">🌧️ 104%</div>
+            <!-- Drier ☀️ — Africa, Middle East -->
+            <div class="map-marker off" data-layer="drier" style="top:48%;left:47%">☀️ 72%</div>
+            <div class="map-marker off" data-layer="drier" style="top:31%;left:55%">☀️ 64%</div>
+            <!-- Hurricane 🌀 — Gulf/Caribbean, Indonesia -->
+            <div class="map-marker off" data-layer="hurricane" style="top:40%;left:17%">🌀 Cat 2</div>
+            <div class="map-marker off" data-layer="hurricane" style="top:52%;left:75%">🌀 TS</div>
+            <!-- NDVI 🌿 — US, China -->
+            <div class="map-marker" data-layer="ndvi" style="top:30%;left:22%">🌿 0.72</div>
+            <div class="map-marker" data-layer="ndvi" style="top:25%;left:74%">🌿 0.58</div>
+            <!-- Energy ⚡ — Middle East, China -->
+            <div class="map-marker off" data-layer="energy" style="top:33%;left:55%">⚡ 48 GW</div>
+            <div class="map-marker off" data-layer="energy" style="top:22%;left:72%">⚡ 112 GW</div>
+            <!-- S&D 📊 — Russia, US, France -->
+            <div class="map-marker" data-layer="sd" style="top:11%;left:64%">📊 63M MT</div>
+            <div class="map-marker" data-layer="sd" style="top:26%;left:18%">📊 49.7M MT</div>
+            <div class="map-marker" data-layer="sd" style="top:22%;left:46%">📊 35.2M MT</div>
+          </div>
+          </div>
+        </div>
+        <div class="map-zoom-hint">Scroll to zoom | Drag to pan</div>
+      </div>
+    </div>
+  </div>
+
   <!-- LEFT SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <input class="sb-search" type="text" placeholder="Search commodities..." oninput="filterSidebar(this.value)">
     <div class="sb-group">GRAINS</div>
     <div class="sb-icon active" data-commodity="Wheat" onclick="showTable('Wheat')">
-      <span class="sb-emoji">W</span><span class="sb-label">Wheat</span>
+      <span class="sb-star watched" onclick="toggleWatch('Wheat',event)">&#9733;</span>
+      <span class="sb-emoji">🌾</span><span class="sb-label">Wheat</span>
       <span class="sb-dot" style="background:var(--red)"></span>
     </div>
     <div class="sb-icon" data-commodity="Corn" onclick="showTable('Corn')">
-      <span class="sb-emoji">C</span><span class="sb-label">Corn</span>
+      <span class="sb-star watched" onclick="toggleWatch('Corn',event)">&#9733;</span>
+      <span class="sb-emoji">🌽</span><span class="sb-label">Corn</span>
       <span class="sb-dot" style="background:var(--orange)"></span>
     </div>
     <div class="sb-icon" data-commodity="Barley" onclick="showTable('Barley')">
-      <span class="sb-emoji">B</span><span class="sb-label">Barley</span>
+      <span class="sb-star" onclick="toggleWatch('Barley',event)">&#9734;</span>
+      <span class="sb-emoji">🌿</span><span class="sb-label">Barley</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
     <div class="sb-icon" data-commodity="Rice" onclick="showTable('Rice')">
-      <span class="sb-emoji">R</span><span class="sb-label">Rice</span>
+      <span class="sb-star" onclick="toggleWatch('Rice',event)">&#9734;</span>
+      <span class="sb-emoji">🍚</span><span class="sb-label">Rice</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
     <div class="sb-group">OILSEEDS</div>
     <div class="sb-icon" data-commodity="Soybeans" onclick="showTable('Soybeans')">
-      <span class="sb-emoji">S</span><span class="sb-label">Soybeans</span>
+      <span class="sb-star watched" onclick="toggleWatch('Soybeans',event)">&#9733;</span>
+      <span class="sb-emoji">🫘</span><span class="sb-label">Soybeans</span>
       <span class="sb-dot" style="background:var(--green)"></span>
     </div>
     <div class="sb-icon" data-commodity="Sunflower" onclick="showTable('Sunflower')">
-      <span class="sb-emoji">Sf</span><span class="sb-label">Sunflower</span>
+      <span class="sb-star" onclick="toggleWatch('Sunflower',event)">&#9734;</span>
+      <span class="sb-emoji">🌻</span><span class="sb-label">Sunflower</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
     <div class="sb-icon" data-commodity="Rapeseed" onclick="showTable('Rapeseed')">
-      <span class="sb-emoji">Rp</span><span class="sb-label">Rapeseed</span>
+      <span class="sb-star" onclick="toggleWatch('Rapeseed',event)">&#9734;</span>
+      <span class="sb-emoji">🌱</span><span class="sb-label">Rapeseed</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
     <div class="sb-group">SOFTS</div>
     <div class="sb-icon" data-commodity="Coffee" onclick="showTable('Coffee')">
-      <span class="sb-emoji">Cf</span><span class="sb-label">Coffee</span>
+      <span class="sb-star" onclick="toggleWatch('Coffee',event)">&#9734;</span>
+      <span class="sb-emoji">☕</span><span class="sb-label">Coffee</span>
       <span class="sb-dot" style="background:var(--red)"></span>
     </div>
     <div class="sb-icon" data-commodity="Cocoa" onclick="showTable('Cocoa')">
-      <span class="sb-emoji">Co</span><span class="sb-label">Cocoa</span>
+      <span class="sb-star" onclick="toggleWatch('Cocoa',event)">&#9734;</span>
+      <span class="sb-emoji">🍫</span><span class="sb-label">Cocoa</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
     <div class="sb-group">LIVESTOCK</div>
     <div class="sb-icon" data-commodity="Cattle" onclick="showTable('Cattle')">
-      <span class="sb-emoji">Ca</span><span class="sb-label">Cattle</span>
+      <span class="sb-star" onclick="toggleWatch('Cattle',event)">&#9734;</span>
+      <span class="sb-emoji">🐄</span><span class="sb-label">Cattle</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
     <div class="sb-icon" data-commodity="Hog" onclick="showTable('Hog')">
-      <span class="sb-emoji">H</span><span class="sb-label">Hog</span>
+      <span class="sb-star" onclick="toggleWatch('Hog',event)">&#9734;</span>
+      <span class="sb-emoji">🐷</span><span class="sb-label">Hog</span>
       <span class="sb-dot" style="display:none"></span>
     </div>
   </div>
@@ -401,25 +806,31 @@ body.mode-after .right-panel { width: var(--panel-w); }
   <!-- MAIN AREA -->
   <div class="main-area">
 
-    <!-- HOME / MAP VIEW -->
-    <div class="view-map" id="viewMap">
-      <div class="map-content">
-        <div class="map-empty">
-          <div class="map-title" style="color:var(--faint)">Empty map - no commodity selected</div>
-          <div class="map-sub">Click a commodity icon in the sidebar to load data</div>
-        </div>
-        <div class="map-loaded">
-          <div class="map-title">World Map - Wheat auto-loaded</div>
-          <div class="map-sub">Click a commodity in the sidebar to change | Click a country on the map to drill in</div>
-        </div>
+    <!-- DATA TABLE VIEW (slide-up panel) -->
+    <div class="view-table" id="viewTable">
+      <div class="table-drag-handle" id="tableDragHandle">
+        <span class="drag-hint">Drag to resize</span>
       </div>
+      <div class="table-panel-body" id="tablePanelBody"></div>
     </div>
-
-    <!-- DATA TABLE VIEW -->
-    <div class="view-table" id="viewTable"></div>
 
     <!-- COUNTRY DASHBOARD VIEW -->
     <div class="view-dashboard" id="viewDashboard"></div>
+
+    <!-- S&D VIEW -->
+    <div class="view-sd" id="viewSD"></div>
+
+    <!-- WASDE VIEW -->
+    <div class="view-wasde" id="viewWASDE"></div>
+
+    <!-- TIMELINE VIEW -->
+    <div class="view-timeline" id="viewTimeline"></div>
+
+    <!-- ENSO VIEW -->
+    <div class="view-enso" id="viewENSO"></div>
+
+    <!-- MY DASHBOARD VIEW -->
+    <div class="view-mydash" id="viewMyDash"></div>
   </div>
 
   <!-- RIGHT PANEL (after only) -->
@@ -429,15 +840,19 @@ body.mode-after .right-panel { width: var(--panel-w); }
       <div class="rp-section">
         <div class="rp-header" style="color: var(--offwh);" onclick="toggleSection(this)">MAP LAYERS <span class="chev">&#9660;</span></div>
         <div class="rp-body" style="max-height: 200px;">
-          <div class="layer-grid">
-            <div class="layer-item" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--green)"></span>S&D</div>
-            <div class="layer-item" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--blue)"></span>Cooler</div>
-            <div class="layer-item" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--red)"></span>Warmer</div>
-            <div class="layer-item off" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--orange)"></span>Drier</div>
-            <div class="layer-item" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--cyan)"></span>Wetter</div>
-            <div class="layer-item off" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--faint)"></span>Hurricane</div>
-            <div class="layer-item" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--green)"></span>NDVI</div>
-            <div class="layer-item off" onclick="this.classList.toggle('off')"><span class="layer-dot" style="background:var(--faint)"></span>Energy</div>
+          <div class="layer-controls">
+            <span onclick="toggleAllLayers(true)">Select All</span>
+            <span onclick="toggleAllLayers(false)">Deselect All</span>
+          </div>
+          <div class="layer-grid" id="layerGrid">
+            <div class="layer-item" data-layer="sd" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--green)"></span>📊 S&D</div>
+            <div class="layer-item" data-layer="cooler" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--blue)"></span>❄️ Cooler</div>
+            <div class="layer-item" data-layer="warmer" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--red)"></span>🔥 Warmer</div>
+            <div class="layer-item off" data-layer="drier" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--orange)"></span>☀️ Drier</div>
+            <div class="layer-item" data-layer="wetter" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--cyan)"></span>🌧️ Wetter</div>
+            <div class="layer-item off" data-layer="hurricane" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--faint)"></span>🌀 Hurricane</div>
+            <div class="layer-item" data-layer="ndvi" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--green)"></span>🌿 NDVI</div>
+            <div class="layer-item off" data-layer="energy" onclick="toggleLayer(this)"><span class="layer-dot" style="background:var(--faint)"></span>⚡ Energy</div>
           </div>
         </div>
       </div>
@@ -453,23 +868,26 @@ body.mode-after .right-panel { width: var(--panel-w); }
       <!-- Watchlist -->
       <div class="rp-section">
         <div class="rp-header" style="color: var(--gray);" onclick="toggleSection(this)">MY WATCHLIST <span class="chev">&#9660;</span></div>
-        <div class="rp-body" style="max-height: 200px;">
-          <div class="watch-row" onclick="showTable('Wheat')"><span>Wheat Winter</span><span class="watch-alerts" style="color:var(--green)">3 alerts</span></div>
+        <div class="rp-body" style="max-height: 200px;" id="watchlistBody">
+          <div class="watch-row" onclick="showTable('Wheat')"><span>Wheat</span><span class="watch-alerts" style="color:var(--green)">3 alerts</span></div>
           <div class="watch-row" onclick="showTable('Corn')"><span>Corn</span><span class="watch-alerts" style="color:var(--orange)">1 alert</span></div>
           <div class="watch-row" onclick="showTable('Soybeans')"><span>Soybeans</span><span class="watch-alerts" style="color:var(--faint)">0 alerts</span></div>
         </div>
       </div>
       <!-- Reports -->
       <div class="rp-section">
-        <div class="rp-header" style="color: var(--gray);" onclick="toggleSection(this)">UPCOMING REPORTS <span class="chev">&#9660;</span></div>
+        <div class="rp-header" style="color: var(--gray);" onclick="toggleSection(this)">LATEST REPORTS <span class="chev">&#9660;</span></div>
         <div class="rp-body" style="max-height: 200px;">
-          <div class="report-row">WASDE | Apr 10</div>
-          <div class="report-row">NASS Crop Progress | Mar 31</div>
-          <div class="report-row">USDA Stocks | Jun 30</div>
+          <div class="report-row" style="cursor:pointer;" onclick="showPage('wasde')">WASDE | Mar 12, 2026</div>
+          <div class="report-row" style="cursor:pointer;">NASS Crop Progress | Mar 17, 2026</div>
+          <div class="report-row" style="cursor:pointer;">USDA Prospective Plantings | Mar 20, 2026</div>
         </div>
       </div>
     </div>
   </div>
+  <!-- Panel collapse toggles -->
+  <div class="panel-toggle sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse/Expand sidebar">&#9664;</div>
+  <div class="panel-toggle right-panel-toggle" id="rightPanelToggle" onclick="toggleRightPanel()" title="Collapse/Expand panel">&#9654;</div>
 </div>
 
 <!-- MODE TOGGLE -->
@@ -485,6 +903,28 @@ body.mode-after .right-panel { width: var(--panel-w); }
 </div>
 
 <script>
+// Chart.js global defaults for dark theme
+Chart.defaults.color = '#7A8DA6';
+Chart.defaults.borderColor = 'rgba(58,95,122,0.3)';
+Chart.defaults.font.family = "'Segoe UI', Calibri, Arial, sans-serif";
+Chart.defaults.font.size = 10;
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 8;
+Chart.defaults.animation.duration = 600;
+
+// Chart management helpers
+const activeCharts = {};
+function destroyChart(id) {
+  if (activeCharts[id]) { activeCharts[id].destroy(); delete activeCharts[id]; }
+}
+function createChart(canvasId, config) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  activeCharts[canvasId] = new Chart(ctx, config);
+  return activeCharts[canvasId];
+}
+
 // === DATA ===
 const commodityData = {
   Wheat: {
@@ -568,21 +1008,40 @@ window._currentCountry = '';
 // === NAVIGATION ===
 function goHome() {
   currentView = 'map';
-  document.getElementById('viewMap').style.display = 'flex';
-  document.getElementById('viewTable').classList.remove('active');
+  // Map is always visible as background — just hide overlays
+  // Slide table panel down
+  const vt = document.getElementById('viewTable');
+  vt.classList.remove('active');
+  vt.classList.remove('fullscreen');
+  vt.style.height = '';
   document.getElementById('viewDashboard').classList.remove('active');
+  document.getElementById('viewSD').classList.remove('active');
+  document.getElementById('viewWASDE').classList.remove('active');
+  document.getElementById('viewTimeline').classList.remove('active');
+  document.getElementById('viewENSO').classList.remove('active');
+  document.getElementById('viewMyDash').classList.remove('active');
   document.getElementById('breadcrumb').classList.remove('active');
   // Reset sidebar active
   document.querySelectorAll('.sb-icon').forEach(i => i.classList.remove('active'));
   document.querySelector('.sb-icon[data-commodity="Wheat"]').classList.add('active');
+  // Reset nav pills
+  setActivePill('home');
 }
 
 function showTable(commodity) {
   window._currentCommodity = commodity;
   currentView = 'table';
-  document.getElementById('viewMap').style.display = 'none';
-  document.getElementById('viewTable').classList.add('active');
+  // Map stays visible as background — slide the table panel up
+  const vt = document.getElementById('viewTable');
+  vt.classList.remove('fullscreen');
+  vt.style.height = '';
+  vt.classList.add('active');
   document.getElementById('viewDashboard').classList.remove('active');
+  document.getElementById('viewSD').classList.remove('active');
+  document.getElementById('viewWASDE').classList.remove('active');
+  document.getElementById('viewTimeline').classList.remove('active');
+  document.getElementById('viewENSO').classList.remove('active');
+  document.getElementById('viewMyDash').classList.remove('active');
   // Breadcrumb
   document.getElementById('breadcrumb').classList.add('active');
   document.getElementById('bc-commodity').textContent = commodity;
@@ -593,16 +1052,37 @@ function showTable(commodity) {
   document.querySelectorAll('.sb-icon').forEach(i => i.classList.remove('active'));
   const match = document.querySelector(`.sb-icon[data-commodity="${commodity}"]`);
   if (match) match.classList.add('active');
+  // Highlight countries on map
+  highlightMapCountries(commodity);
   // Render table
   renderTable(commodity);
+}
+
+function highlightMapCountries(commodity) {
+  // Remove all highlights first
+  document.querySelectorAll('.world-map-svg path.highlighted').forEach(p => p.classList.remove('highlighted'));
+  const data = commodityData[commodity] || defaultData;
+  data.rows.forEach(r => {
+    const path = document.querySelector(`.world-map-svg path[data-country="${r.country}"]`);
+    if (path) path.classList.add('highlighted');
+  });
 }
 
 function showDashboard(country, commodity) {
   window._currentCountry = country;
   currentView = 'dashboard';
-  document.getElementById('viewMap').style.display = 'none';
-  document.getElementById('viewTable').classList.remove('active');
+  // Dashboard overlays the map with opaque background
+  // Hide slide-up table panel
+  const vt = document.getElementById('viewTable');
+  vt.classList.remove('active');
+  vt.classList.remove('fullscreen');
+  vt.style.height = '';
   document.getElementById('viewDashboard').classList.add('active');
+  document.getElementById('viewSD').classList.remove('active');
+  document.getElementById('viewWASDE').classList.remove('active');
+  document.getElementById('viewTimeline').classList.remove('active');
+  document.getElementById('viewENSO').classList.remove('active');
+  document.getElementById('viewMyDash').classList.remove('active');
   // Breadcrumb
   document.getElementById('breadcrumb').classList.add('active');
   document.getElementById('bc-commodity').textContent = commodity;
@@ -617,10 +1097,10 @@ function showDashboard(country, commodity) {
 function renderTable(commodity) {
   const data = commodityData[commodity] || defaultData;
   const isAfter = document.body.classList.contains('mode-after');
-  const el = document.getElementById('viewTable');
+  const el = document.getElementById('tablePanelBody');
 
   let html = `<div class="vt-header">
-    <button class="vt-back" onclick="goHome()">&larr; Back to Map</button>
+    <button class="vt-back" onclick="goHome()">&larr; Close</button>
     <div><div class="vt-title">${commodity}</div><div class="vt-sub">Click a country row to view its dashboard</div></div>
   </div>`;
 
@@ -710,15 +1190,69 @@ function renderDashboard(country, commodity) {
     html += `<div class="kpi-card" style="border-color:${k.color}"><div class="label">${k.label}</div><div class="value" style="color:${k.color}">${k.value}</div><div class="change" style="color:${k.color}">${k.change}</div></div>`;
   });
   html += `</div>`;
-  html += `<div class="chart-grid"><div class="chart-box">Production Trend (simplified 3 series)</div><div class="chart-box">Yield Comparison (3 series)</div></div>`;
+  html += `<div class="chart-grid">
+    <div style="height:180px;position:relative;"><canvas id="countryProdChart"></canvas></div>
+    <div style="height:180px;position:relative;"><canvas id="countryYieldChart"></canvas></div>
+  </div>`;
   html += `<div class="weather-summary"><div class="ws-header">WEATHER SNAPSHOT</div>`;
   html += `<div class="ws-row"><span>Temperature</span><span style="color:var(--orange)">+2.1C above normal</span></div>`;
   html += `<div class="ws-row"><span>Precipitation</span><span style="color:var(--green)">96% of normal</span></div>`;
-  html += `<div class="ws-row"><span>NDVI</span><span style="color:var(--green)">Healthy vegetation</span></div>`;
+  html += `<div class="ws-row"><span>NDVI</span><span style="color:var(--green);">Healthy vegetation</span></div>`;
   html += `<div class="ws-row"><span>Soil Moisture</span><span style="color:var(--orange)">Below average</span></div>`;
   html += `</div></div>`;
 
   el.innerHTML = html;
+
+  // Create charts for After mode
+  if (isAfter) {
+    setTimeout(() => {
+      const countryData = d || dashboardData["United States"];
+
+      // Production Trend chart
+      createChart('countryProdChart', {
+        type: 'bar',
+        data: {
+          labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+          datasets: [{
+            label: 'Production (M MT)',
+            data: [85, 92, 88, 95, 98],
+            backgroundColor: '#00E5FF',
+            borderColor: '#00E5FF'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // Yield History chart
+      createChart('countryYieldChart', {
+        type: 'line',
+        data: {
+          labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+          datasets: [{
+            label: 'Yield (MT/ha)',
+            data: [5.2, 5.8, 5.5, 6.1, 6.4],
+            borderColor: '#FFAB40',
+            backgroundColor: 'rgba(255, 171, 64, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#FFAB40'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 50);
+  }
 }
 
 function updateDashVisibility() {
@@ -734,6 +1268,750 @@ function updateDashVisibility() {
     const newTabs = ["OVERVIEW","S&D","WEATHER","SATELLITE","LOGISTICS"];
     const tabs = isAfter ? newTabs : oldTabs;
     tabsEl.innerHTML = tabs.map((t, i) => `<div class="dash-tab${i === 0 ? ' active' : ''}">${t}</div>`).join('');
+  }
+}
+
+// === NEW PAGE NAVIGATION ===
+function showPage(pageId) {
+  // Hide all overlay views (map stays as background)
+  document.getElementById('viewTable').classList.remove('active');
+  document.getElementById('viewTable').style.height = '';
+  document.getElementById('viewDashboard').classList.remove('active');
+  document.getElementById('viewSD').classList.remove('active');
+  document.getElementById('viewWASDE').classList.remove('active');
+  document.getElementById('viewTimeline').classList.remove('active');
+  document.getElementById('viewENSO').classList.remove('active');
+  document.getElementById('viewMyDash').classList.remove('active');
+
+  // Show selected page
+  let pageEl;
+  let pageTitle = 'Page';
+  switch(pageId) {
+    case 'sd':
+      pageEl = document.getElementById('viewSD');
+      pageTitle = 'Supply & Demand';
+      break;
+    case 'wasde':
+      pageEl = document.getElementById('viewWASDE');
+      pageTitle = 'WASDE Report';
+      break;
+    case 'timeline':
+      pageEl = document.getElementById('viewTimeline');
+      pageTitle = 'Timeline';
+      break;
+    case 'enso':
+      pageEl = document.getElementById('viewENSO');
+      pageTitle = 'ENSO Monitor';
+      break;
+    case 'mydash':
+      pageEl = document.getElementById('viewMyDash');
+      pageTitle = 'My Dashboard';
+      break;
+  }
+
+  if (pageEl) {
+    pageEl.classList.add('active');
+    currentView = pageId;
+    // Render the page
+    if (pageId === 'sd') renderSDPage();
+    else if (pageId === 'wasde') renderWASDE();
+    else if (pageId === 'timeline') renderTimeline();
+    else if (pageId === 'enso') renderENSO();
+    else if (pageId === 'mydash') renderMyDashboard();
+  }
+
+  // Update breadcrumb
+  document.getElementById('breadcrumb').classList.add('active');
+  document.getElementById('bc-commodity').textContent = pageTitle;
+  document.getElementById('bc-commodity').className = 'current';
+  document.getElementById('bc-sep2').style.display = 'none';
+  document.getElementById('bc-country').textContent = '';
+
+  // Update nav pills
+  setActivePill(pageId);
+}
+
+// === SET ACTIVE PILL ===
+function setActivePill(pageName) {
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-flat-item').forEach(p => p.classList.remove('active'));
+
+  if (pageName === 'home') {
+    document.querySelector('.nav-pill[onclick*="goHome"]')?.classList.add('active');
+    document.querySelector('.nav-flat-item[onclick*="goHome"]')?.classList.add('active');
+  } else {
+    const pill = document.querySelector(`.nav-pill[onclick*="${pageName}"]`);
+    const flatItem = document.querySelector(`.nav-flat-item[onclick*="${pageName}"]`);
+    if (pill) pill.classList.add('active');
+    if (flatItem) flatItem.classList.add('active');
+  }
+}
+
+// === SUPPLY & DEMAND PAGE ===
+function renderSDPage() {
+  const isAfter = document.body.classList.contains('mode-after');
+  const el = document.getElementById('viewSD');
+
+  const commodities = ['Wheat', 'Corn', 'Soybeans', 'Rice', 'Barley'];
+  const countries = ['Russia', 'Ukraine', 'United States', 'Brazil', 'Australia', 'France'];
+
+  let html = `<div class="page-view">
+    <div class="page-header">
+      <div class="page-title">Supply & Demand</div>
+      <div class="page-back" onclick="goHome()">&larr; Back</div>
+    </div>
+    <div class="page-content">`;
+
+  if (!isAfter) {
+    // BEFORE: Dense table
+    html += `<table class="old-table" style="width:100%">
+      <tr><th>Country</th><th>Commodity</th><th>Area Planted</th><th>Area Harvested</th><th>Yield</th><th>Beg Stocks</th><th>Production</th><th>Imports</th><th>Total Supply</th><th>Dom Cons</th><th>Exports</th><th>End Stocks</th><th>S/D Ratio</th><th>Price Trend</th><th>Risk</th></tr>`;
+
+    countries.forEach(country => {
+      commodities.slice(0, 3).forEach(commodity => {
+        const prod = Math.floor(Math.random() * 50000 + 30000);
+        const cons = Math.floor(Math.random() * 40000 + 20000);
+        const endStk = Math.floor(Math.random() * 10000 + 5000);
+        html += `<tr><td>${country}</td><td>${commodity}</td><td>${Math.floor(Math.random() * 10000 + 2000)}</td><td>${Math.floor(Math.random() * 10000 + 2000)}</td><td>${(Math.random() * 5 + 1).toFixed(2)}</td><td>${Math.floor(Math.random() * 20000 + 5000)}</td><td>${prod}</td><td>${Math.floor(Math.random() * 5000 + 1000)}</td><td>${prod + Math.floor(Math.random() * 10000)}</td><td>${cons}</td><td>${Math.floor(Math.random() * 10000 + 2000)}</td><td>${endStk}</td><td>${(prod / cons).toFixed(2)}</td><td>↑</td><td><span class="hot">HIGH</span></td></tr>`;
+      });
+    });
+
+    html += `</table>
+    <div class="problems-box">15+ columns with no grouping, no visual cues, requires horizontal scroll</div>`;
+  } else {
+    // AFTER: Card-based layout with charts
+    html += `<div class="commodity-selector">`;
+    commodities.forEach(comm => {
+      html += `<div class="commodity-tab${comm === 'Wheat' ? ' active' : ''}">${comm}</div>`;
+    });
+    html += `</div>
+
+    <div class="filter-tabs">
+      <div class="filter-tab active">All Regions</div>
+      <div class="filter-tab">Surplus</div>
+      <div class="filter-tab">Deficit</div>
+      <div class="filter-tab">Watchlist</div>
+    </div>`;
+
+    // Chart section
+    html += `<div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:600;color:white;margin-bottom:8px;">Production vs Consumption vs Ending Stocks</div>
+      <div style="height:200px;position:relative;"><canvas id="sdBarChart"></canvas></div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:600;color:white;margin-bottom:8px;">Ending Stocks Trend (5yr)</div>
+      <div style="height:180px;position:relative;"><canvas id="sdStockChart"></canvas></div>
+    </div>`;
+
+    const sdData = [
+      { country: 'Russia', prod: 87, cons: 42, endStk: 18, health: 'surplus', healthColor: 'green' },
+      { country: 'Ukraine', prod: 82, cons: 12, endStk: 25, health: 'surplus', healthColor: 'green' },
+      { country: 'United States', prod: 420, cons: 85, endStk: 52, health: 'balanced', healthColor: 'orange' },
+      { country: 'Brazil', prod: 145, cons: 35, endStk: 8, health: 'deficit', healthColor: 'red' },
+      { country: 'Australia', prod: 35, cons: 8, endStk: 12, health: 'surplus', healthColor: 'green' },
+      { country: 'France', prod: 42, cons: 18, endStk: 6, health: 'balanced', healthColor: 'orange' },
+    ];
+
+    sdData.forEach(d => {
+      const maxVal = Math.max(d.prod, d.cons) * 1.1;
+      const prodWidth = (d.prod / maxVal) * 100;
+      const consWidth = (d.cons / maxVal) * 100;
+
+      html += `<div class="balance-card ${d.health}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;color:white;">${d.country}</div>
+          <span class="health-badge health-${d.healthColor}">${d.health === 'surplus' ? 'Surplus' : d.health === 'deficit' ? 'Deficit' : 'Balanced'}</span>
+        </div>
+        <div class="metric"><span class="metric-label">Production:</span><span class="metric-value">${d.prod}M MT</span></div>
+        <div class="metric"><span class="metric-label">Consumption:</span><span class="metric-value">${d.cons}M MT</span></div>
+        <div class="metric"><span class="metric-label">End Stocks:</span><span class="metric-value">${d.endStk}M MT</span></div>
+        <div style="margin-top:8px;">
+          <div style="font-size:9px;color:var(--faint);margin-bottom:4px;">Supply vs Demand</div>
+          <div style="display:flex;gap:2px;height:16px;align-items:flex-end;background:rgba(0,0,0,0.2);border-radius:2px;overflow:hidden;">
+            <div style="flex:${prodWidth};background:var(--cyan);border-radius:2px;"></div>
+            <div style="flex:${consWidth};background:var(--orange);border-radius:2px;"></div>
+          </div>
+        </div>
+        <div class="metric-change">5-yr trend: ↑ +3.2M MT</div>
+      </div>`;
+    });
+  }
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+
+  // Create charts for After mode
+  if (isAfter) {
+    setTimeout(() => {
+      // Bar chart: Production vs Consumption vs Ending Stocks
+      createChart('sdBarChart', {
+        type: 'bar',
+        data: {
+          labels: ['Russia', 'United States', 'France', 'Australia'],
+          datasets: [
+            { label: 'Production', data: [63.0, 49.7, 35.2, 28.4], backgroundColor: '#00E5FF' },
+            { label: 'Consumption', data: [42.0, 30.8, 33.1, 7.5], backgroundColor: '#FFAB40' },
+            { label: 'Ending Stocks', data: [11.2, 18.9, 2.1, 4.9], backgroundColor: '#00E676' }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { x: { stacked: true }, y: { stacked: true } }
+        }
+      });
+
+      // Line chart: Ending Stocks Trend
+      createChart('sdStockChart', {
+        type: 'line',
+        data: {
+          labels: ['21/22', '22/23', '23/24', '24/25', '25/26'],
+          datasets: [
+            { label: 'Russia', data: [14.1, 12.8, 11.5, 10.9, 11.2], borderColor: '#00E5FF', tension: 0.4, fill: false },
+            { label: 'US', data: [21.5, 19.3, 18.6, 19.1, 18.9], borderColor: '#4FC3F7', tension: 0.4, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 50);
+  }
+}
+
+// === WASDE PAGE ===
+function renderWASDE() {
+  const isAfter = document.body.classList.contains('mode-after');
+  const el = document.getElementById('viewWASDE');
+
+  let html = `<div class="page-view">
+    <div class="page-header">
+      <div class="page-title">WASDE Report</div>
+      <div class="page-back" onclick="goHome()">&larr; Back</div>
+    </div>
+    <div class="page-content">`;
+
+  if (!isAfter) {
+    // BEFORE: Raw USDA data
+    html += `<table class="old-table" style="width:100%">
+      <tr><th>Commodity</th><th>MY 24/25 Est</th><th>MY 25/26 Proj</th><th>WP Prod</th><th>WP Est</th><th>Ending Stk 24/25</th><th>Ending Stk 25/26</th><th>US Exp 24/25</th><th>US Exp 25/26</th></tr>
+      <tr><td>Wheat</td><td>245.2</td><td>251.8</td><td>203.5</td><td>208.1</td><td>42.1</td><td>38.7</td><td>34.2</td><td>36.5</td></tr>
+      <tr><td>Corn</td><td>1,892.4</td><td>1,756.3</td><td>1,245.8</td><td>1,198.5</td><td>67.3</td><td>54.2</td><td>68.9</td><td>71.2</td></tr>
+      <tr><td>Soybeans</td><td>612.5</td><td>589.3</td><td>452.1</td><td>423.8</td><td>25.4</td><td>23.1</td><td>52.1</td><td>48.7</td></tr>
+    </table>
+    <div class="problems-box">Raw data dump with no context, no change highlighting, no interpretation</div>`;
+  } else {
+    // AFTER: Report style
+    html += `<div style="background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(79,195,247,0.1));border:1px solid rgba(0,229,255,0.2);border-radius:5px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:600;color:white;">WASDE Report — March 2026</div>
+      <div style="font-size:10px;color:var(--gray);margin-top:2px;">Released: Mar 10, 2026</div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-box"><div class="label">Key Revisions</div><div class="value" style="color:var(--orange)">3</div><div class="note">Wheat down, Corn neutral, Soybeans up</div></div>
+      <div class="summary-box" style="border-color:var(--green);"><div class="label">Bullish Signals</div><div class="value" style="color:var(--green)">5</div><div class="note">Lower ending stocks, strong demand</div></div>
+      <div class="summary-box" style="border-color:var(--red);"><div class="label">Bearish Signals</div><div class="value" style="color:var(--red)">2</div><div class="note">Increased global production</div></div>
+    </div>
+
+    <div style="margin-bottom:16px;margin-top:16px;">
+      <div style="font-size:12px;font-weight:600;color:white;margin-bottom:8px;">Previous vs New Estimates</div>
+      <div style="height:180px;position:relative;"><canvas id="wasdeCompareChart"></canvas></div>
+    </div>`;
+
+    const wasdeRevisions = [
+      { commodity: 'Wheat', category: 'World Production', prev: 789.5, new: 782.1, impact: 'bearish' },
+      { commodity: 'Wheat', category: 'Ending Stocks', prev: 285.2, new: 271.8, impact: 'bullish' },
+      { commodity: 'Wheat', category: 'US Exports', prev: 34.2, new: 36.5, impact: 'bullish' },
+      { commodity: 'Corn', category: 'World Production', prev: 1245.8, new: 1198.5, impact: 'bullish' },
+      { commodity: 'Corn', category: 'Ending Stocks', prev: 67.3, new: 54.2, impact: 'bullish' },
+      { commodity: 'Soybeans', category: 'US Exports', prev: 52.1, new: 48.7, impact: 'bearish' },
+    ];
+
+    wasdeRevisions.forEach(rev => {
+      const change = rev.new - rev.prev;
+      const changeStr = change >= 0 ? `+${change.toFixed(1)}` : change.toFixed(1);
+      const color = rev.impact === 'bullish' ? 'var(--green)' : 'var(--red)';
+
+      html += `<div class="balance-card" style="border-color:${color}">
+        <div style="font-size:11px;font-weight:600;color:white;margin-bottom:6px;">${rev.commodity} — ${rev.category}</div>
+        <div class="metric"><span class="metric-label">Previous:</span><span class="metric-value">${rev.prev.toFixed(1)} M MT</span></div>
+        <div class="metric"><span class="metric-label">New Estimate:</span><span class="metric-value" style="color:${color}">${rev.new.toFixed(1)} M MT</span></div>
+        <div class="metric"><span class="metric-label">Change:</span><span class="metric-value" style="color:${color}">${changeStr} M MT</span></div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
+          <span style="display:inline-block;padding:3px 8px;border-radius:3px;font-size:9px;font-weight:600;background:${color}22;color:${color};">${rev.impact === 'bullish' ? '✓ Bullish' : '✗ Bearish'}</span>
+        </div>
+      </div>`;
+    });
+
+    html += `<div style="background:var(--card);border-radius:5px;padding:12px;margin-top:14px;border-top:2px solid var(--orange);">
+      <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;margin-bottom:8px;">Market Impact Assessment</div>
+      <div style="font-size:11px;color:var(--offwh);margin-bottom:6px;">Expected price direction based on revisions:</div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <div style="flex:1;">
+          <div style="font-size:10px;color:var(--gray);margin-bottom:3px;">Wheat</div>
+          <div style="font-size:13px;color:var(--cyan);">↑ +0.8%</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:10px;color:var(--gray);margin-bottom:3px;">Corn</div>
+          <div style="font-size:13px;color:var(--green);">↑ +1.2%</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:10px;color:var(--gray);margin-bottom:3px;">Soybeans</div>
+          <div style="font-size:13px;color:var(--red);">↓ -0.5%</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+
+  // Create charts for After mode
+  if (isAfter) {
+    setTimeout(() => {
+      createChart('wasdeCompareChart', {
+        type: 'bar',
+        data: {
+          labels: ['World Wheat\nProduction', 'World Corn\nProduction', 'World Soybeans\nProduction'],
+          datasets: [
+            { label: 'Previous', data: [800.2, 1219.5, 414.3], backgroundColor: '#4FC3F7' },
+            { label: 'New', data: [797.8, 1222.1, 413.8], backgroundColor: '#00E5FF' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 50);
+  }
+}
+
+// === TIMELINE PAGE ===
+function renderTimeline() {
+  const isAfter = document.body.classList.contains('mode-after');
+  const el = document.getElementById('viewTimeline');
+
+  let html = `<div class="page-view">
+    <div class="page-header">
+      <div class="page-title">Timeline</div>
+      <div class="page-back" onclick="goHome()">&larr; Back</div>
+    </div>
+    <div class="page-content">`;
+
+  if (!isAfter) {
+    // BEFORE: Simple list
+    html += `<div style="font-size:10px;color:var(--gray);line-height:1.8;">
+      <div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:3px;">
+        <div style="font-weight:600;color:white;">Mar 10, 2026</div>
+        <div>WASDE Report: Global wheat stocks revised down 2.3M MT</div>
+      </div>
+      <div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:3px;">
+        <div style="font-weight:600;color:white;">Mar 08, 2026</div>
+        <div>Brazil: Heavy rainfall in Mato Grosso region increases flood risk</div>
+      </div>
+      <div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:3px;">
+        <div style="font-weight:600;color:white;">Mar 05, 2026</div>
+        <div>Russia: Temperature anomaly +4.6C in southern wheat region</div>
+      </div>
+      <div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:3px;">
+        <div style="font-weight:600;color:white;">Mar 01, 2026</div>
+        <div>EU: Crop condition report - 64% of wheat in Good/Excellent condition</div>
+      </div>
+      <div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:3px;">
+        <div style="font-weight:600;color:white;">Feb 28, 2026</div>
+        <div>Argentina: Drought conditions ease as rain expected next week</div>
+      </div>
+    </div>
+    <div class="problems-box">No visual timeline, no filtering, events not categorized by impact</div>`;
+  } else {
+    // AFTER: Visual timeline
+    html += `<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="padding:4px 12px;border-radius:3px;background:rgba(79,195,247,0.15);color:var(--blue);font-size:10px;font-weight:600;cursor:pointer;">Last 7 Days</div>
+      <div style="padding:4px 12px;border-radius:3px;background:rgba(255,255,255,0.08);color:var(--gray);font-size:10px;font-weight:600;cursor:pointer;">30 Days</div>
+      <div style="padding:4px 12px;border-radius:3px;background:rgba(255,255,255,0.08);color:var(--gray);font-size:10px;font-weight:600;cursor:pointer;">90 Days</div>
+      <div style="padding:4px 12px;border-radius:3px;background:rgba(255,255,255,0.08);color:var(--gray);font-size:10px;font-weight:600;cursor:pointer;">1 Year</div>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="padding:4px 10px;border-radius:3px;background:rgba(0,0,0,0.3);color:white;font-size:10px;cursor:pointer;">All Events</div>
+      <div style="padding:4px 10px;border-radius:3px;background:rgba(79,195,247,0.15);color:var(--blue);font-size:10px;cursor:pointer;">Weather</div>
+      <div style="padding:4px 10px;border-radius:3px;background:rgba(255,171,64,0.15);color:var(--orange);font-size:10px;cursor:pointer;">Policy</div>
+      <div style="padding:4px 10px;border-radius:3px;background:rgba(255,82,82,0.15);color:var(--red);font-size:10px;cursor:pointer;">Market</div>
+      <div style="padding:4px 10px;border-radius:3px;background:rgba(0,230,118,0.15);color:var(--green);font-size:10px;cursor:pointer;">Reports</div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:600;color:white;margin-bottom:8px;">Wheat Price ($/bushel)</div>
+      <div style="height:180px;position:relative;"><canvas id="timelinePriceChart"></canvas></div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-event report">
+        <div class="timeline-dot"></div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-date">Mar 10, 2026</div>
+          <div class="timeline-event-title">WASDE Report Released</div>
+          <div class="timeline-event-desc">Global wheat stocks revised down 2.3M MT. Corn production stable. Soybeans demand increases.</div>
+          <div class="timeline-event-impact impact-high">HIGH IMPACT</div>
+        </div>
+      </div>
+
+      <div class="timeline-event weather">
+        <div class="timeline-dot"></div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-date">Mar 08, 2026</div>
+          <div class="timeline-event-title">Brazil Heavy Precipitation</div>
+          <div class="timeline-event-desc">175% of normal precipitation in Mato Grosso region increases flood risk for safrinha corn crop.</div>
+          <div class="timeline-event-impact impact-high">HIGH IMPACT</div>
+        </div>
+      </div>
+
+      <div class="timeline-event weather">
+        <div class="timeline-dot"></div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-date">Mar 05, 2026</div>
+          <div class="timeline-event-title">Russia Temperature Anomaly</div>
+          <div class="timeline-event-desc">Southern wheat regions showing +4.6°C anomaly. GFS and ECMWF forecasts agree on continued warming.</div>
+          <div class="timeline-event-impact impact-high">HIGH IMPACT</div>
+        </div>
+      </div>
+
+      <div class="timeline-event policy">
+        <div class="timeline-dot"></div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-date">Mar 01, 2026</div>
+          <div class="timeline-event-title">EU Crop Condition Report</div>
+          <div class="timeline-event-desc">64% of wheat in Good/Excellent condition. Barley slightly better at 67%. Favorable outlook for spring crops.</div>
+          <div class="timeline-event-impact impact-low">LOW IMPACT</div>
+        </div>
+      </div>
+
+      <div class="timeline-event weather">
+        <div class="timeline-dot"></div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-date">Feb 28, 2026</div>
+          <div class="timeline-event-title">Argentina Drought Easing</div>
+          <div class="timeline-event-desc">Rainfall expected next week should ease drought conditions in key soybean regions.</div>
+          <div class="timeline-event-impact impact-medium">MEDIUM IMPACT</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+
+  // Create charts for After mode
+  if (isAfter) {
+    setTimeout(() => {
+      const canvas = document.getElementById('timelinePriceChart');
+      if (!canvas) return;
+
+      // Create gradient fill
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+      gradient.addColorStop(0, 'rgba(0, 229, 255, 0.3)');
+      gradient.addColorStop(1, 'rgba(0, 229, 255, 0.0)');
+
+      createChart('timelinePriceChart', {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          datasets: [{
+            label: 'Wheat Price',
+            data: [6.8, 7.1, 7.4, 7.2, 6.9, 7.3, 7.8, 8.1, 7.6, 7.3, 7.5, 7.9],
+            borderColor: '#00E5FF',
+            backgroundColor: gradient,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#00E5FF',
+            pointBorderColor: '#00E5FF'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true, position: 'bottom' } },
+          scales: { y: { beginAtZero: false, min: 6, max: 8.5 } }
+        }
+      });
+    }, 50);
+  }
+}
+
+// === ENSO PAGE ===
+function renderENSO() {
+  const isAfter = document.body.classList.contains('mode-after');
+  const el = document.getElementById('viewENSO');
+
+  let html = `<div class="page-view">
+    <div class="page-header">
+      <div class="page-title">ENSO Monitor</div>
+      <div class="page-back" onclick="goHome()">&larr; Back</div>
+    </div>
+    <div class="page-content">`;
+
+  if (!isAfter) {
+    // BEFORE: Static display
+    html += `<div style="background:var(--card);border-radius:5px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:white;">Current ENSO Status</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--gray);">El Niño conditions present with ONI index at +0.85°C</div>
+      <div style="margin-top:4px;font-size:10px;color:var(--faint);">Affects: Wheat, Corn, Coffee, Cocoa, Rice</div>
+    </div>
+    <div class="problems-box">Static display, no commodity linkage, no forecast visualization</div>`;
+  } else {
+    // AFTER: Dashboard style
+    html += `<div class="enso-status-banner">
+      <div class="enso-status-title">El Niño</div>
+      <div class="enso-status-desc">Current oceanic index: +0.85°C • Forecast: Weakening</div>
+    </div>
+
+    <div class="oni-index-bar">
+      <div class="oni-bar-label">ONI Index (-2.0 to +2.0)</div>
+      <div class="oni-bar-track">
+        <div class="oni-bar-fill" style="width:60%;"></div>
+      </div>
+      <div class="oni-bar-scale">
+        <span>-2.0 (Strong La Niña)</span>
+        <span>0.0 (Neutral)</span>
+        <span>+2.0 (Strong El Niño)</span>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-box" style="border-color:var(--orange);"><div class="label">El Niño Probability</div><div class="value" style="color:var(--orange);">68%</div><div class="note">Next 3 months</div></div>
+      <div class="summary-box" style="border-color:var(--gray);"><div class="label">Neutral Probability</div><div class="value" style="color:var(--gray);">28%</div><div class="note">Next 3 months</div></div>
+      <div class="summary-box" style="border-color:var(--blue);"><div class="label">La Niña Probability</div><div class="value" style="color:var(--blue);">4%</div><div class="note">Next 3 months</div></div>
+    </div>
+
+    <div style="margin-bottom:16px;margin-top:16px;">
+      <div style="font-size:12px;font-weight:600;color:white;margin-bottom:8px;">ONI Index History (Last 24 Months)</div>
+      <div style="height:180px;position:relative;"><canvas id="ensoOniChart"></canvas></div>
+    </div>
+
+    <div class="impact-matrix">
+      <div class="impact-matrix-title">Commodity Impact Matrix (Current Phase)</div>
+      <div class="impact-matrix-grid">
+        <div class="impact-cell">
+          <div class="impact-cell-commodity">Wheat</div>
+          <div class="impact-cell-level" style="color:var(--orange);">Negative</div>
+        </div>
+        <div class="impact-cell">
+          <div class="impact-cell-commodity">Corn</div>
+          <div class="impact-cell-level" style="color:var(--red);">Negative</div>
+        </div>
+        <div class="impact-cell">
+          <div class="impact-cell-commodity">Soybeans</div>
+          <div class="impact-cell-level" style="color:var(--orange);">Neutral</div>
+        </div>
+        <div class="impact-cell">
+          <div class="impact-cell-commodity">Coffee</div>
+          <div class="impact-cell-level" style="color:var(--green);">Positive</div>
+        </div>
+        <div class="impact-cell">
+          <div class="impact-cell-commodity">Cocoa</div>
+          <div class="impact-cell-level" style="color:var(--red);">Negative</div>
+        </div>
+        <div class="impact-cell">
+          <div class="impact-cell-commodity">Sugar</div>
+          <div class="impact-cell-level" style="color:var(--orange);">Neutral</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border-radius:5px;padding:12px;margin-top:14px;border-left:3px solid var(--cyan);">
+      <div style="font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;margin-bottom:8px;">Historical ENSO Events</div>
+      <div style="font-size:10px;color:var(--gray);line-height:1.6;">
+        <div>1997-98 El Niño: Severe global impacts, wheat yields down 8-12%</div>
+        <div style="margin-top:4px;">2015-16 Strong El Niño: Coffee production disrupted in Brazil, prices +45%</div>
+        <div style="margin-top:4px;">2023-24 El Niño: Moderate effects, corn yields variable by region</div>
+      </div>
+    </div>`;
+  }
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+
+  // Create charts for After mode
+  if (isAfter) {
+    setTimeout(() => {
+      createChart('ensoOniChart', {
+        type: 'line',
+        data: {
+          labels: ['Jan 24', 'Feb 24', 'Mar 24', 'Apr 24', 'May 24', 'Jun 24', 'Jul 24', 'Aug 24', 'Sep 24', 'Oct 24', 'Nov 24', 'Dec 24', 'Jan 25', 'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25', 'Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dec 25'],
+          datasets: [{
+            label: 'ONI Index',
+            data: [0.3, 0.1, -0.2, -0.5, -0.8, -1.0, -1.2, -1.0, -0.8, -0.5, -0.3, 0.0, 0.2, 0.4, 0.3, 0.1, -0.1, -0.3, -0.5, -0.7, -0.9, -0.8, -0.6, -0.4],
+            borderColor: '#00E5FF',
+            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true, position: 'bottom' } },
+          scales: { y: { beginAtZero: true, min: -1.5, max: 0.5 } }
+        }
+      });
+    }, 50);
+  }
+}
+
+// === MY DASHBOARD PAGE ===
+function renderMyDashboard() {
+  const isAfter = document.body.classList.contains('mode-after');
+  const el = document.getElementById('viewMyDash');
+
+  let html = `<div class="page-view">
+    <div class="page-header">
+      <div class="page-title">My Dashboard</div>
+      <div class="page-back" onclick="goHome()">&larr; Back</div>
+    </div>
+    <div class="page-content">`;
+
+  if (!isAfter) {
+    // BEFORE: No personalized dashboard
+    html += `<div style="text-align:center;padding:40px 20px;color:var(--faint);">
+      <div style="font-size:14px;margin-bottom:8px;">No Personalized Dashboard</div>
+      <div style="font-size:11px;color:var(--gray);">In the enhanced version, you'll get custom widgets tracking your watchlist.</div>
+    </div>
+    <div class="problems-box">No personalized view, traders must navigate to each page separately, no watchlist aggregation</div>`;
+  } else {
+    // AFTER: Personalized widgets
+    html += `<div class="dashboard-grid" style="margin-bottom:16px;">
+      <div class="dashboard-widget">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">Wheat Winter</div>
+        <div class="widget-content">
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>Price:</span>
+            <span style="color:var(--green);">$8.45 ↑</span>
+          </div>
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>Risk:</span>
+            <span style="color:var(--red);">HIGH</span>
+          </div>
+          <div style="font-size:9px;color:var(--faint);">3 active alerts</div>
+        </div>
+      </div>
+
+      <div class="dashboard-widget">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">Corn</div>
+        <div class="widget-content">
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>Price:</span>
+            <span style="color:var(--orange);">$4.12</span>
+          </div>
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>Risk:</span>
+            <span style="color:var(--orange);">MEDIUM</span>
+          </div>
+          <div style="font-size:9px;color:var(--faint);">1 active alert</div>
+        </div>
+      </div>
+
+      <div class="dashboard-widget">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">Soybeans</div>
+        <div class="widget-content">
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>Price:</span>
+            <span style="color:var(--green);">$11.87 ↑</span>
+          </div>
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>Risk:</span>
+            <span style="color:var(--green);">LOW</span>
+          </div>
+          <div style="font-size:9px;color:var(--faint);">0 alerts</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div class="dashboard-widget" style="grid-column:1;">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">Recent Alerts</div>
+        <div class="widget-content" style="font-size:9px;line-height:1.6;color:var(--gray);">
+          <div style="margin-bottom:4px;"><span style="color:var(--red);font-weight:600;">HIGH</span> Russia +4.6C (12m)</div>
+          <div style="margin-bottom:4px;"><span style="color:var(--orange);font-weight:600;">MED</span> Brazil precip (1h)</div>
+          <div style="margin-bottom:4px;"><span style="color:var(--cyan);font-weight:600;">NEW</span> WASDE (3h)</div>
+          <div><span style="color:var(--green);font-weight:600;">LOW</span> US Great Lakes (1d)</div>
+        </div>
+      </div>
+
+      <div class="dashboard-widget" style="grid-column:2;">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">My Reports</div>
+        <div class="widget-content" style="font-size:9px;line-height:1.6;color:var(--gray);">
+          <div style="margin-bottom:4px;">Wheat Q1 Analysis</div>
+          <div style="margin-bottom:4px;">Brazil Corn Risk</div>
+          <div style="margin-bottom:4px;">ENSO Outlook</div>
+          <div>S&D Projections</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="dashboard-widget">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">Market Snapshot</div>
+        <div style="height:140px;position:relative;"><canvas id="dashPriceChart"></canvas></div>
+      </div>
+
+      <div class="dashboard-widget">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-title">Weather Risk Summary</div>
+        <div class="widget-content" style="font-size:9px;line-height:1.8;color:var(--gray);">
+          <div style="display:flex;justify-content:space-between;"><span>Russia</span><span style="color:var(--red);">CRITICAL</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Brazil</span><span style="color:var(--red);">HIGH</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>US South</span><span style="color:var(--orange);">MEDIUM</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>EU</span><span style="color:var(--green);">LOW</span></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="customize-btn" onclick="alert('Customize Dashboard functionality coming soon!')">⚙ Customize Dashboard</button>`;
+  }
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+
+  // Create charts for After mode
+  if (isAfter) {
+    setTimeout(() => {
+      createChart('dashPriceChart', {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [
+            { label: 'Wheat', data: [7.42, 7.38, 7.45, 7.51, 7.49, 7.53, 7.56], borderColor: '#00E5FF', tension: 0.4, fill: false, pointRadius: 3 },
+            { label: 'Corn', data: [4.85, 4.82, 4.88, 4.91, 4.87, 4.90, 4.93], borderColor: '#FFAB40', tension: 0.4, fill: false, pointRadius: 3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+          scales: { y: { beginAtZero: false } }
+        }
+      });
+    }, 50);
   }
 }
 
@@ -760,6 +2038,11 @@ modeToggle.addEventListener('change', () => {
   if (currentView === 'dashboard') {
     renderDashboard(window._currentCountry, window._currentCommodity);
   }
+  if (currentView === 'sd') renderSDPage();
+  if (currentView === 'wasde') renderWASDE();
+  if (currentView === 'timeline') renderTimeline();
+  if (currentView === 'enso') renderENSO();
+  if (currentView === 'mydash') renderMyDashboard();
 });
 
 // Keyboard: Space to toggle
@@ -769,8 +2052,312 @@ document.addEventListener('keydown', (e) => {
     modeToggle.checked = !modeToggle.checked;
     modeToggle.dispatchEvent(new Event('change'));
   }
-  if (e.code === 'Escape') goHome();
+  if (e.code === 'Escape') {
+    // Close any open dropdown first, then go home
+    const openDD = document.querySelector('.dropdown.open');
+    if (openDD) { openDD.classList.remove('open'); return; }
+    goHome();
+  }
 });
+
+// === DROPDOWN MENUS ===
+function toggleDropdown(id, evt) {
+  evt = evt || window.event;
+  if (evt) { evt.stopPropagation(); evt.preventDefault(); }
+  const dd = document.getElementById(id);
+  if (!dd) return;
+  const wasOpen = dd.classList.contains('open');
+  // Close all dropdowns first
+  document.querySelectorAll('.dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  // Toggle the clicked one
+  if (!wasOpen) {
+    dd.classList.add('open');
+  }
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', function(e) {
+  // If click is inside a dropdown or its anchor, don't close
+  if (e.target.closest('.dropdown-anchor')) return;
+  document.querySelectorAll('.dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+
+// === LAYER TOGGLE (syncs legend with map markers) ===
+function toggleLayer(el) {
+  el.classList.toggle('off');
+  syncMapMarkers();
+}
+
+function syncMapMarkers() {
+  document.querySelectorAll('#layerGrid .layer-item').forEach(function(item) {
+    var layer = item.dataset.layer;
+    var isOff = item.classList.contains('off');
+    document.querySelectorAll('.map-marker[data-layer="' + layer + '"]').forEach(function(m) {
+      if (isOff) { m.classList.add('off'); } else { m.classList.remove('off'); }
+    });
+  });
+}
+
+function toggleAllLayers(selectAll) {
+  document.querySelectorAll('#layerGrid .layer-item').forEach(function(item) {
+    if (selectAll) { item.classList.remove('off'); }
+    else { item.classList.add('off'); }
+  });
+  syncMapMarkers();
+}
+
+// === WATCHLIST ===
+var watchlist = ['Wheat', 'Corn', 'Soybeans'];
+
+function toggleWatch(commodity, evt) {
+  evt.stopPropagation();
+  var idx = watchlist.indexOf(commodity);
+  var star = evt.target;
+  if (idx >= 0) {
+    watchlist.splice(idx, 1);
+    star.classList.remove('watched');
+    star.innerHTML = '&#9734;';
+  } else {
+    watchlist.push(commodity);
+    star.classList.add('watched');
+    star.innerHTML = '&#9733;';
+  }
+  renderWatchlist();
+}
+
+function renderWatchlist() {
+  var el = document.getElementById('watchlistBody');
+  if (!el) return;
+  if (watchlist.length === 0) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--faint);padding:4px 0;">Click the star next to a commodity to add it here.</div>';
+    return;
+  }
+  var alertData = { Wheat: {n:3,c:'var(--green)'}, Corn: {n:1,c:'var(--orange)'}, Soybeans: {n:0,c:'var(--faint)'} };
+  var html = '';
+  watchlist.forEach(function(name) {
+    var a = alertData[name] || {n:0,c:'var(--faint)'};
+    html += '<div class="watch-row" onclick="showTable(\'' + name + '\')"><span>' + name + '</span><span class="watch-alerts" style="color:' + a.c + '">' + a.n + ' alert' + (a.n !== 1 ? 's' : '') + '</span></div>';
+  });
+  el.innerHTML = html;
+}
+
+// === COLLAPSE/EXPAND SIDE PANELS ===
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebarToggle');
+  sb.classList.toggle('collapsed');
+  const isCollapsed = sb.classList.contains('collapsed');
+  btn.innerHTML = isCollapsed ? '&#9654;' : '&#9664;';
+  btn.classList.toggle('shifted', isCollapsed);
+}
+
+function toggleRightPanel() {
+  const rp = document.getElementById('rightPanel');
+  const btn = document.getElementById('rightPanelToggle');
+  rp.classList.toggle('collapsed');
+  const isCollapsed = rp.classList.contains('collapsed');
+  btn.innerHTML = isCollapsed ? '&#9664;' : '&#9654;';
+  btn.classList.toggle('shifted', isCollapsed);
+}
+
+// === DRAG TO RESIZE TABLE PANEL ===
+(function() {
+  const handle = document.getElementById('tableDragHandle');
+  const panel = document.getElementById('viewTable');
+  const mainArea = document.querySelector('.main-area');
+  let isDragging = false;
+  let startY = 0;
+  let startH = 0;
+
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    isDragging = true;
+    startY = e.clientY;
+    startH = panel.getBoundingClientRect().height;
+    // Disable transition during drag for smooth resizing
+    panel.style.transition = 'none';
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    const mainH = mainArea.getBoundingClientRect().height;
+    const delta = startY - e.clientY; // positive = dragging up = taller panel
+    let newH = startH + delta;
+    // Clamp between 60px (minimum) and full height
+    newH = Math.max(60, Math.min(newH, mainH));
+    panel.style.height = newH + 'px';
+    // Toggle fullscreen class at >95%
+    if (newH >= mainH * 0.95) {
+      panel.classList.add('fullscreen');
+    } else {
+      panel.classList.remove('fullscreen');
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.style.transition = '';
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    // If dragged below 60px threshold, close the panel
+    const currentH = panel.getBoundingClientRect().height;
+    if (currentH <= 60) {
+      goHome();
+    }
+  });
+
+  // Touch support for mobile
+  handle.addEventListener('touchstart', function(e) {
+    isDragging = true;
+    startY = e.touches[0].clientY;
+    startH = panel.getBoundingClientRect().height;
+    panel.style.transition = 'none';
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    const mainH = mainArea.getBoundingClientRect().height;
+    const delta = startY - e.touches[0].clientY;
+    let newH = startH + delta;
+    newH = Math.max(60, Math.min(newH, mainH));
+    panel.style.height = newH + 'px';
+    if (newH >= mainH * 0.95) {
+      panel.classList.add('fullscreen');
+    } else {
+      panel.classList.remove('fullscreen');
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.style.transition = '';
+    const currentH = panel.getBoundingClientRect().height;
+    if (currentH <= 60) {
+      goHome();
+    }
+  });
+})();
+
+// === MAP ZOOM & PAN ===
+(function() {
+  const wrapper = document.getElementById('mapZoomWrapper');
+  const mapView = document.getElementById('viewMap');
+  if (!wrapper || !mapView) return;
+  let scale = 1;
+  let panX = 0;
+  let panY = 0;
+  let isPanning = false;
+  let startPanX = 0;
+  let startPanY = 0;
+  let startMouseX = 0;
+  let startMouseY = 0;
+
+  function applyTransform() {
+    wrapper.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + scale + ')';
+  }
+
+  // Wheel zoom — listen on the entire map view area
+  mapView.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    // ctrlKey is set for trackpad pinch-to-zoom gestures
+    var zoomSpeed = e.ctrlKey ? 0.02 : 0.005;
+    var delta = -e.deltaY * zoomSpeed;
+    var newScale = Math.min(6, Math.max(0.4, scale + delta * scale));
+    // Zoom toward cursor position
+    var rect = mapView.getBoundingClientRect();
+    var cx = e.clientX - rect.left - rect.width / 2;
+    var cy = e.clientY - rect.top - rect.height / 2;
+    var ratio = newScale / scale;
+    panX = cx - ratio * (cx - panX);
+    panY = cy - ratio * (cy - panY);
+    scale = newScale;
+    applyTransform();
+  }, { passive: false });
+
+  // Mouse drag to pan
+  mapView.addEventListener('mousedown', function(e) {
+    // Don't pan if clicking a country path with data
+    if (e.target.tagName === 'path' && e.target.dataset.country) return;
+    // Don't pan if clicking on sidebar/panel overlay areas
+    if (e.target.closest('.sidebar') || e.target.closest('.right-panel')) return;
+    isPanning = true;
+    startMouseX = e.clientX;
+    startMouseY = e.clientY;
+    startPanX = panX;
+    startPanY = panY;
+    wrapper.classList.add('grabbing');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isPanning) return;
+    panX = startPanX + (e.clientX - startMouseX);
+    panY = startPanY + (e.clientY - startMouseY);
+    applyTransform();
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (!isPanning) return;
+    isPanning = false;
+    wrapper.classList.remove('grabbing');
+  });
+
+  // Touch: single-finger pan
+  var touchStartDist = 0;
+  var touchStartScale = 1;
+  mapView.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      isPanning = true;
+      startMouseX = e.touches[0].clientX;
+      startMouseY = e.touches[0].clientY;
+      startPanX = panX;
+      startPanY = panY;
+    } else if (e.touches.length === 2) {
+      isPanning = false;
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchStartDist = Math.sqrt(dx * dx + dy * dy);
+      touchStartScale = scale;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 1 && isPanning) {
+      panX = startPanX + (e.touches[0].clientX - startMouseX);
+      panY = startPanY + (e.touches[0].clientY - startMouseY);
+      applyTransform();
+    } else if (e.touches.length === 2) {
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (touchStartDist > 0) {
+        scale = Math.min(6, Math.max(0.4, touchStartScale * (dist / touchStartDist)));
+        applyTransform();
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function() {
+    isPanning = false;
+    touchStartDist = 0;
+  });
+
+  // Double-click to reset zoom
+  mapView.addEventListener('dblclick', function(e) {
+    if (e.target.closest('.sidebar') || e.target.closest('.right-panel')) return;
+    scale = 1;
+    panX = 0;
+    panY = 0;
+    wrapper.style.transition = 'transform 0.3s ease';
+    applyTransform();
+    setTimeout(function() { wrapper.style.transition = 'none'; }, 300);
+  });
+})();
 </script>
 </body>
 </html>
